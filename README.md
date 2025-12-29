@@ -1,6 +1,31 @@
 # Subjective Ranking Engine
 
-Service FastAPI pour classer des éléments par votes binaires (pairwise) avec stockage SQLite par défaut et trois pages statiques pour l'admin, le vote et le statut.
+![Interface du Subjective Ranking Engine](accueil.png)
+
+## 📖 À propos
+
+**Subjective Ranking Engine** est un système de classement collaboratif basé sur des comparaisons par paires. Au lieu de demander à vos utilisateurs de noter chaque élément sur une échelle arbitraire (1-5 étoiles, 1-10, etc.), ce système leur présente deux options à la fois et leur demande simplement : **"Laquelle préférez-vous ?"**
+
+### Pourquoi c'est utile ?
+
+Les comparaisons binaires sont plus **faciles** et **cohérentes** pour les humains que les notes absolues. Choisir entre deux films est naturel, mais donner une note objective sur 10 à un film isolé est difficile et source de biais. Ce système exploite cette observation pour construire un classement robuste et consensuel.
+
+### Cas d'usage
+
+- 🎬 **Classement de films, livres, musiques** : Découvrez les véritables préférences de votre communauté
+- 🍔 **Choix de restaurant, plats** : Aidez vos clients à trouver le meilleur burger de la ville
+- 🎨 **Design, logos, prototypes** : Laissez votre équipe voter pour le meilleur design
+- 📝 **Priorisation de features** : Classez les demandes produit selon les votes utilisateurs
+- 🏆 **Compétitions, concours** : Organisez des tournois de comparaison sur n'importe quel sujet
+
+### Comment ça fonctionne ?
+
+1. **Création** : Ajoutez vos éléments (texte, images, JSON, nombres)
+2. **Vote** : Les utilisateurs comparent des paires et choisissent leur favori
+3. **Classement** : L'algorithme Elo met à jour en temps réel le classement global
+4. **Stabilité** : Une métrique indique quand le consensus est atteint (>90% de certitude)
+
+En seulement **20-30 comparaisons**, vous obtenez un classement fiable pour une liste de 10 éléments. L'algorithme sélectionne intelligemment les paires les plus informatives pour accélérer la convergence.
 
 ## ✨ Fonctionnalités
 
@@ -35,14 +60,47 @@ uvicorn app:app --reload
 
 Puis ouvrir http://localhost:8000
 
-## 📱 Pages disponibles
+## 📱 Interfaces utilisateur
 
-- **/** — Page d'accueil avec navigation
-- **/static/admin.html** — Gestion listes et items (CRUD, soft delete/réactivation)
-- **/static/vote.html** — Interface de vote sur paires
-- **/static/status.html** — Stabilité + classement trié (auto-refresh optionnel)
-- **/docs** — Documentation API interactive (Swagger)
-- **/health** — Health check
+Le système propose trois interfaces web complètes pour gérer vos classements :
+
+### 🎛️ Administration
+![Interface d'administration](administration.png)
+
+L'interface d'**administration** permet de créer et gérer vos listes de classement. Vous pouvez :
+- Créer plusieurs listes indépendantes (films, restaurants, designs, etc.)
+- Ajouter des éléments de différents types : texte simple, nombres, URLs d'images, ou objets JSON complexes
+- Modifier ou désactiver des éléments à tout moment (soft delete)
+- Réactiver des éléments précédemment supprimés
+- Visualiser tous vos éléments avec un rendu adapté (miniatures pour les images, formatage JSON)
+
+### ⚡ Vote
+![Interface de vote](vote.png)
+
+L'interface de **vote** est au cœur du système. Elle présente de manière claire et intuitive :
+- Deux éléments côte à côte pour une comparaison directe
+- Un clic sur la carte de votre choix enregistre le vote
+- Chargement automatique de la paire suivante après chaque vote
+- Possibilité de passer une paire (skip) sans voter
+- Design épuré pour se concentrer sur la décision
+
+L'algorithme sélectionne intelligemment les paires à présenter : il privilégie les éléments peu comparés et ceux dont le classement est incertain (Elo proches), maximisant ainsi l'information apportée par chaque vote.
+
+### 📊 Classement et stabilité
+![Interface de status](status.png)
+
+L'interface de **status** affiche en temps réel :
+- Le **score de stabilité** (0 à 1) : indique le niveau de consensus atteint
+  - < 0.6 : classement instable, continuez à voter
+  - 0.6-0.8 : convergence en cours
+  - 0.8-0.9 : classement assez fiable
+  - \> 0.9 : consensus fort, classement très stable
+- Le **classement complet** trié par score Elo décroissant
+- Option d'**auto-refresh** pour suivre l'évolution en direct lors de sessions de vote collaboratif
+
+Cette vue permet de savoir instantanément si vous avez besoin de plus de votes ou si le classement est suffisamment robuste pour prendre des décisions.
+
+---
 
 ## 🔧 API (résumé)
 
@@ -136,3 +194,13 @@ Couvre :
 - Auth légère + rate limiting
 - Export CSV/JSON
 - Analytics et historique détaillé
+
+---
+
+## 👤 Auteur
+
+**David LOUISE**
+
+## 📄 Licence
+
+MIT

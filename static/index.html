@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subjective Ranking Engine</title>
+    <style>
+        :root {
+            --bg: #0b1224;
+            --panel: #0f172a;
+            --accent: #6366f1;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --border: #1e293b;
+        }
+
+        body {
+            margin: 0;
+            padding: 48px 24px;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15), transparent 35%),
+                radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15), transparent 40%),
+                linear-gradient(135deg, #0b1224 0%, #0f172a 60%, #0b1224 100%);
+            color: var(--text);
+            font-family: "Manrope", "Inter", system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            margin: 0 0 12px 0;
+            font-size: 3rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #6366f1 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin: 0 0 48px 0;
+            font-size: 1.1rem;
+            letter-spacing: 0.3px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4);
+            transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+            text-decoration: none;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 25px 100px rgba(99, 102, 241, 0.25);
+        }
+
+        .card h2 {
+            margin: 0 0 12px 0;
+            color: var(--text);
+            font-size: 1.5rem;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        footer {
+            margin-top: 64px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Subjective Ranking Engine</h1>
+    <p class="subtitle">Classement par votes binaires • Algorithme Elo</p>
+
+    <div class="cards">
+        <a href="/static/admin.html" class="card">
+            <div class="icon">⚙️</div>
+            <h2>Administration</h2>
+            <p>Créer des listes, ajouter et gérer les éléments à classer</p>
+        </a>
+
+        <a href="/static/vote.html" class="card">
+            <div class="icon">⚡</div>
+            <h2>Vote</h2>
+            <p>Comparer des paires d'éléments et voter pour vos préférences</p>
+        </a>
+
+        <a href="/static/status.html" class="card">
+            <div class="icon">📊</div>
+            <h2>Status</h2>
+            <p>Consulter la stabilité et le classement courant d'une liste</p>
+        </a>
+    </div>
+
+    <footer>
+        <p>
+            Documentation API : <a href="/docs">/docs</a> •
+            Health : <a href="/health">/health</a>
+        </p>
+    </footer>
+</body>
+
+</html>

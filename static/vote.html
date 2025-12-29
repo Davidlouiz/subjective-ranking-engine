@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vote - Classement subjectif</title>
+    <style>
+        :root {
+            --bg: #0b1224;
+            --panel: #0f172a;
+            --accent: #6366f1;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --border: #1e293b;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.12), transparent 25%),
+                radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.12), transparent 30%),
+                linear-gradient(140deg, #0b1224 0%, #0f172a 60%, #0b1224 100%);
+            color: var(--text);
+            font-family: "Manrope", "Inter", system-ui, sans-serif;
+        }
+
+        h1 {
+            margin-top: 0;
+            letter-spacing: 0.3px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        select,
+        button {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0b1224;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--accent);
+            border: none;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            transition: transform 120ms ease, box-shadow 120ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            min-height: 220px;
+            box-shadow: 0 15px 60px rgba(0, 0, 0, 0.35);
+            transition: transform 120ms ease, border-color 120ms ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.6);
+        }
+
+        .label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .payload {
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        img.media {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .status {
+            margin-top: 16px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Vote</h1>
+    <div class="controls">
+        <select id="listSelect"></select>
+        <button id="refreshLists">Listes</button>
+        <button id="newPair">Nouvelle paire</button>
+    </div>
+
+    <div class="cards">
+        <div class="card" id="cardLeft" onclick="vote('left')">
+            <div class="label">Gauche</div>
+            <div id="leftPayload" class="payload">Sélectionnez une liste puis demandez une paire.</div>
+        </div>
+        <div class="card" id="cardRight" onclick="vote('right')">
+            <div class="label">Droite</div>
+            <div id="rightPayload" class="payload"></div>
+        </div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script>
+        const api = (path, opts = {}) => fetch(path, {
+            headers: { 'Content-Type': 'application/json' },
+            ...opts,
+        }).then(async res => {
+            if (!res.ok) throw new Error(await res.text());
+            const text = await res.text();
+            return text ? JSON.parse(text) : {};
+        });
+
+        const listSelect = document.getElementById('listSelect');
+        const leftPayload = document.getElementById('leftPayload');
+        const rightPayload = document.getElementById('rightPayload');
+        const statusEl = document.getElementById('status');
+        let currentPair = null;
+
+        function renderPayload(node, item) {
+            if (!item) { node.innerHTML = '—'; return; }
+            if (item.type === 'image') {
+                node.innerHTML = `<div>${item.payload}</div><img class="media" src="${item.payload}" alt="img" />`;
+                return;
+            }
+            if (item.type === 'json') {
+                node.innerHTML = `<pre>${JSON.stringify(item.payload, null, 2)}</pre>`;
+                return;
+            }
+            node.textContent = item.payload;
+        }
+
+        async function loadLists() {
+            const lists = await api('/lists');
+            listSelect.innerHTML = '';
+            lists.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.list_id || l.id;
+                opt.textContent = `${l.name} (${(l.list_id || l.id).slice(0, 8)})`;
+                listSelect.appendChild(opt);
+            });
+        }
+
+        async function newPair() {
+            const listId = listSelect.value;
+            if (!listId) return;
+            try {
+                const pair = await api(`/lists/${listId}/pair`);
+                currentPair = pair;
+                renderPayload(leftPayload, pair.left);
+                renderPayload(rightPayload, pair.right);
+                statusEl.textContent = `Pair ${pair.pair_id || pair.id}`;
+            } catch (err) {
+                statusEl.textContent = `Erreur: ${err}`;
+            }
+        }
+
+        async function vote(side) {
+            if (!currentPair) return;
+            const listId = listSelect.value;
+            try {
+                await api(`/lists/${listId}/vote`, { method: 'POST', body: JSON.stringify({ pair_id: currentPair.pair_id || currentPair.id, winner: side }) });
+                statusEl.textContent = 'Vote enregistré';
+                await newPair();
+            } catch (err) {
+                statusEl.textContent = `Erreur: ${err}`;
+            }
+        }
+
+        window.vote = vote;
+        document.getElementById('newPair').addEventListener('click', newPair);
+        document.getElementById('refreshLists').addEventListener('click', loadLists);
+        listSelect.addEventListener('change', newPair);
+
+        loadLists();
+    </script>
+</body>
+
+</html>

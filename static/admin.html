@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Classement subjectif</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --accent: #10b981;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --border: #1f2937;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: linear-gradient(135deg, #0f172a 0%, #111827 60%, #0b1224 100%);
+            color: var(--text);
+            font-family: "Manrope", "Inter", system-ui, -apple-system, sans-serif;
+        }
+
+        h1 {
+            margin-top: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 15px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        label {
+            display: block;
+            margin: 6px 0 4px;
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 0.2px;
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0b1224;
+            color: var(--text);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--accent);
+            color: #0b1224;
+            border: none;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            transition: transform 120ms ease, box-shadow 120ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--border);
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #1e293b;
+            color: var(--text);
+        }
+
+        .inactive {
+            opacity: 0.5;
+        }
+
+        img.thumb {
+            max-width: 96px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Administration</h1>
+    <div class="grid">
+        <div class="card">
+            <h3>Créer une liste</h3>
+            <label for="listName">Nom</label>
+            <input id="listName" placeholder="Ma liste" />
+            <button id="createList">Créer</button>
+        </div>
+        <div class="card">
+            <h3>Sélection de liste</h3>
+            <label for="listSelect">Liste</label>
+            <select id="listSelect"></select>
+            <button id="refreshLists">Rafraîchir</button>
+        </div>
+        <div class="card">
+            <h3>Ajouter un item</h3>
+            <label for="itemType">Type</label>
+            <select id="itemType">
+                <option value="text">text</option>
+                <option value="number">number</option>
+                <option value="image">image</option>
+                <option value="json">json</option>
+            </select>
+            <label for="itemPayload">Payload</label>
+            <textarea id="itemPayload" rows="3" placeholder="Texte, URL, nombre, ou JSON"></textarea>
+            <button id="addItem">Ajouter</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <h3 style="margin: 0;">Items de la liste</h3>
+            <label style="display:flex; align-items:center; gap:8px; color: var(--muted); font-size:13px;">
+                <input type="checkbox" id="showInactive" style="width:auto;" /> Inclure inactifs
+            </label>
+            <button id="refreshItems" style="max-width: 160px;">Rafraîchir</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Payload</th>
+                    <th>Actif</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const api = (path, opts = {}) => fetch(path, {
+            headers: { 'Content-Type': 'application/json' },
+            ...opts,
+        }).then(async res => {
+            if (!res.ok) throw new Error(await res.text());
+            const text = await res.text();
+            return text ? JSON.parse(text) : {};
+        });
+
+        const listSelect = document.getElementById('listSelect');
+        const listName = document.getElementById('listName');
+        const createListBtn = document.getElementById('createList');
+        const refreshListsBtn = document.getElementById('refreshLists');
+        const addItemBtn = document.getElementById('addItem');
+        const refreshItemsBtn = document.getElementById('refreshItems');
+        const showInactive = document.getElementById('showInactive');
+        const itemsBody = document.getElementById('itemsBody');
+
+        async function loadLists() {
+            const lists = await api('/lists');
+            listSelect.innerHTML = '';
+            lists.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.list_id || l.id;
+                opt.textContent = `${l.name} (${(l.list_id || l.id).slice(0, 8)})`;
+                listSelect.appendChild(opt);
+            });
+        }
+
+        async function createList() {
+            if (!listName.value.trim()) return;
+            await api('/lists', { method: 'POST', body: JSON.stringify({ name: listName.value }) });
+            listName.value = '';
+            await loadLists();
+        }
+
+        function parsePayload(value, type) {
+            if (type === 'number') return Number(value);
+            if (type === 'json') {
+                try { return JSON.parse(value); } catch { return value; }
+            }
+            return value;
+        }
+
+        async function addItem() {
+            const listId = listSelect.value;
+            if (!listId) return;
+            const type = document.getElementById('itemType').value;
+            const payload = parsePayload(document.getElementById('itemPayload').value, type);
+            await api(`/lists/${listId}/items`, { method: 'POST', body: JSON.stringify({ type, payload }) });
+            document.getElementById('itemPayload').value = '';
+            await loadItems();
+        }
+
+        function renderPayload(row) {
+            if (row.type === 'image') {
+                return `<div><div>${row.payload}</div><img class="thumb" src="${row.payload}" alt="img" /></div>`;
+            }
+            if (row.type === 'json') {
+                return `<pre>${JSON.stringify(row.payload, null, 2)}</pre>`;
+            }
+            return row.payload;
+        }
+
+        async function toggleActive(id, active) {
+            const listId = listSelect.value;
+            await api(`/lists/${listId}/items/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) });
+            await loadItems();
+        }
+
+        async function loadItems() {
+            const listId = listSelect.value;
+            if (!listId) return;
+            const includeInactive = showInactive.checked ? 'true' : 'false';
+            const rows = await api(`/lists/${listId}/items?include_inactive=${includeInactive}`);
+            itemsBody.innerHTML = rows.map(row => `
+        <tr class="${row.active ? '' : 'inactive'}">
+          <td><span class="badge">${row.item_id || row.id}</span></td>
+          <td>${row.type}</td>
+          <td>${renderPayload(row)}</td>
+          <td>${row.active ? 'Oui' : 'Non'}</td>
+          <td class="row-actions">
+            ${row.active ? `<button onclick="toggleActive('${row.item_id || row.id}', false)">Désactiver</button>` : `<button onclick="toggleActive('${row.item_id || row.id}', true)">Réactiver</button>`}
+          </td>
+        </tr>
+      `).join('');
+        }
+
+        // Global functions for inline handlers
+        window.toggleActive = toggleActive;
+
+        createListBtn.addEventListener('click', createList);
+        refreshListsBtn.addEventListener('click', loadLists);
+        addItemBtn.addEventListener('click', addItem);
+        refreshItemsBtn.addEventListener('click', loadItems);
+        listSelect.addEventListener('change', loadItems);
+        showInactive.addEventListener('change', loadItems);
+
+        loadLists().then(loadItems);
+    </script>
+</body>
+
+</html>

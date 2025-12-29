@@ -1,0 +1,21 @@
+# Copilot Instructions
+
+- Purpose: FastAPI service + 3 static HTML/JS pages for subjective ranking via pairwise votes; SQLite default storage; Python 3.11+.
+- Domain: lists (uuid), items (type=text|number|image|json, payload JSON/str, active flag), soft-delete only; ratings (Elo, games); optional pairs table for audit; stability metric 0..1 from adjacent Elo win probs.
+- Core flows: create/list/get lists; CRUD items (soft delete/reactivate); fetch pair; submit vote; skip is allowed by just asking new pair; get status (stability + sorted items).
+- Pair selection heuristic (MVP): pool of least-played items (cap ~200); focus from lowest games (cap ~30); opponent minimizing |elo diff|; never return same item twice; error if <2 active items.
+- Voting: vote includes pair_id + winner (left/right); if pair missing/already answered/inactive item => return ok:true with ignored reason; vote updates both Elo with K (default 24) using classic Elo formula.
+- Stability: sort active items by Elo desc; for each adjacent pair compute p(win); stability = mean; product decides threshold (e.g., 0.9) externally.
+- Frontend pages (static): admin.html (list CRUD, item CRUD, soft-delete/reactivate, table with type-aware rendering incl. image thumbnail, JSON stringify); vote.html (choose list, fetch pair, clickable cards, auto fetch next after vote, manual skip); status.html (choose list, show stability + sorted table, optional auto-refresh).
+- Persistence: SQLite file data.db by default; keep history consistent when items are deactivated; votes on inactive items must be ignored without crash.
+- API shape (JSON): POST /lists {name}; GET /lists; GET /lists/{list_id}; POST /lists/{list_id}/items; GET items with include_inactive; PATCH items for type/payload/active; DELETE item => active=false; GET /lists/{list_id}/pair returns pair_id + left/right items; POST /lists/{list_id}/vote {pair_id,winner}; GET /lists/{list_id}/status {stability, sorted_items}.
+- Edge rules: can add/remove items anytime; pairs not reserved; multiple users voting asynchronously; must scale to 50k-100k items; always avoid returning inactive items in pairs/status.
+- Observability: log creation of list/item, votes (pair_id, winner, ids), coherence errors (inactive/missing items); optional /health endpoint.
+- Execution: run API with `uvicorn app:app --reload`; serve static files (FastAPI StaticFiles or simple static server); default SQLite path data.db.
+- Testing expectations: unit tests for Elo probabilities/updates; pair selection returns 2 distinct active items; API tests (pytest + httpx) cover create list, add items, get pair, vote, status, soft-delete then vote on old pair => ignored without crash.
+- Non-goals (MVP): no auth, no rate limiting, no advanced models (Bradley-Terry/TrueSkill), no vote reservation; extensions listed but not required.
+- Coding conventions: keep code typed; soft delete via active flag not hard delete; favor clear errors when too few active items; ensure idempotent vote handling for answered/missing/invalid pairs.
+- Performance notes: pair selection must stay fast on large lists; favor indexed lookups on games/elo; avoid locking; asynchronous-safe design for concurrent votes.
+- Frontend display: type=image -> show URL + <img>; type=json -> pretty stringify; text/number -> plain string; cards clickable for voting.
+- Data model suggestion: tables list, item, rating (or merged), pair (optional for audit with answered flag + winner_id).
+- If repo structure differs, align endpoints/contracts to the above spec; keep instructions updated if filenames differ once code is present.
